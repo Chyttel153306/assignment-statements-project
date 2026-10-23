@@ -1,5 +1,15 @@
 # Restricted assignment grammar
 
+The final assignment test-case table in `Assignment_Recognizer_Documentation.docx`
+is the agreed specification, confirmed by the user on 23 October 2026. Its 16
+examples are checked by `tests/test_documentation.py` through both the core and
+the JSON API, and all are available in the Test Laboratory. The document's earlier
+plain-assignment rules and password code describe different languages; see
+[the reference review](reference_review.md) for the discrepancies.
+
+## Grammar
+
+```text
 assignment ::= WS? "int" WS identifier WS? "=" WS? expression WS? ";" WS? EOF
 identifier ::= (letter | "_") {letter | digit | "_"}
 expression ::= integer WS? operator WS? integer
@@ -9,11 +19,20 @@ operator   ::= "+" | "-" | "*" | "/"
 letter     ::= "A".."Z" | "a".."z"
 digit      ::= "0".."9"
 WS         ::= (space | tab) {space | tab}
+```
 
 At least one operator is required. Spaces or tabs MUST separate int and the identifier.
 Leading and trailing spaces/tabs are allowed. Line breaks are rejected.
 Names and digits use the ASCII alphabet. The identifier spelling int is allowed
 by this restricted grammar (this is not a full C or Python language validator).
+
+The following regular expression describes the syntax when used with Python's
+`re.fullmatch`. It is a specification and test oracle; runtime recognition uses
+the explicit DFA. The separate semantic check still rejects literal zero divisors.
+
+```regex
+[ \t]*int[ \t]+[A-Za-z_][A-Za-z_0-9]*[ \t]*=[ \t]*[0-9]+(?:[ \t]*[+*/-][ \t]*[0-9]+)+[ \t]*;[ \t]*
+```
 
 Accepted: int a = 8 + 8;
 Accepted: int sum = 1+2+3-8*2/8;

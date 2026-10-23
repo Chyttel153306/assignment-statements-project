@@ -200,7 +200,13 @@ kbd { padding: 3px 6px; border: 1px solid #3a4a61; border-radius: 5px; font-size
 .diagram-view-switch [aria-pressed="true"] { border-color:var(--accent, #91baff); background:#203650; color:#eaf3ff; }
 .path-parts { justify-content:space-between; padding:14px 22px; border-bottom:1px solid var(--line); }
 svg.diagram-simple .node-label { font-size: 22px; }
+svg.diagram-simple .node[data-state="A"] .node-label,
+svg.diagram-simple .node[data-state="H"] .node-label,
+svg.diagram-simple .node.dead .node-label { font-size: 17px; }
 svg.diagram-simple .edge text { font-size: 18px; }
+svg.diagram-simple .edge.reject text { font-size: 16px; }
+.program-code { max-height: 520px; overflow: auto; }
+.grammar-code.regex-code { white-space: pre; overflow-x: auto; }
 svg.diagram-simple .node-caption { font-size: 16px; }
 svg .state-circle { fill: #162539; stroke: #879bb6; stroke-width: 1.5; transition: fill .2s, stroke .2s; }
 svg .node-label { fill: #eff4fc; font: 17px var(--mono); text-anchor: middle; dominant-baseline: central; }
@@ -215,7 +221,7 @@ svg .edge.visited path { stroke: #85dfb0; stroke-width: 3; }
 svg .edge.visited text { fill: #aff0cc; }
 svg .edge.rejected path { stroke: #ffa0ac; stroke-width: 3; }
 svg .edge.rejected text { fill: #ffc0cb; }
-svg .edge.reject path { stroke-dasharray: 5 5; }
+svg .edge.reject path { stroke-dasharray: none; }
 svg .start-arrow { fill: none; stroke: #91baff; stroke-width: 2; }
 svg .svg-note { fill: #a7bdd7; font: 14px 'Segoe UI',sans-serif; text-anchor: middle; }
 svg [data-tooltip] { cursor: help; }

@@ -1,12 +1,13 @@
 """Local Flask interface around the preserved DFA core."""
 import json
+from hashlib import sha256
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, url_for
 from werkzeug.exceptions import HTTPException
 
 from core.validator import validate
-from app.presentation import dfa_definition, serialize_result
+from app.presentation import SYNTAX_REGEX, dfa_definition, serialize_result
 
 ROOT = Path(__file__).resolve().parent.parent
 MAX_STATEMENT_LENGTH = 20000
@@ -18,13 +19,28 @@ def load_test_cases():
 
 def create_app(test_config=None):
     app = Flask(__name__, template_folder=str(ROOT / "templates"), static_folder=str(ROOT / "static"))
-    app.config.update(MAX_CONTENT_LENGTH=128 * 1024, JSON_SORT_KEYS=False)
+    app.config.update(MAX_CONTENT_LENGTH=128 * 1024, JSON_SORT_KEYS=False,
+                      TEMPLATES_AUTO_RELOAD=True)
     if test_config:
         app.config.update(test_config)
 
+    @app.context_processor
+    def versioned_assets():
+        def asset_url(filename):
+            version = sha256((ROOT / "static" / filename).read_bytes()).hexdigest()[:12]
+            return url_for("static", filename=filename, v=version)
+        return dict(asset_url=asset_url)
+
+    @app.after_request
+    def fresh_workspace(response):
+        if request.path == "/":
+            response.headers["Cache-Control"] = "no-store"
+        return response
+
     @app.get("/")
     def index():
-        return render_template("index.html")
+        return render_template("index.html", syntax_regex=SYNTAX_REGEX,
+                               python_program=(ROOT / "tools" / "recognize_assignment.py").read_text(encoding="utf-8"))
 
     @app.get("/api/health")
     def health():

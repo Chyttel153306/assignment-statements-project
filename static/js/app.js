@@ -5,6 +5,9 @@
   const names={dashboard:'Dashboard',validator:'Validator',diagram:'DFA Diagram',steps:'Validation Steps',laboratory:'Test Laboratory',help:'Grammar & Help'};
   const state={ready:false,pending:false,labPending:false,result:null,position:0,cases:[],lab:null,accepted:0,rejected:0};
   const visualizer=new window.DFAVisualizer($('dfa-svg'));
+  // A running server or an open tab can still have the previous HTML template.
+  // Optional teaching additions must not prevent the main workspace starting.
+  const helpVisualizer=$('help-dfa-svg')?new window.DFAVisualizer($('help-dfa-svg')):null;
   let toastTimer;
   let renderedResult=null, renderedMode='';
   function toast(text){clearTimeout(toastTimer);$('toast').textContent=text;$('toast').hidden=false;toastTimer=setTimeout(()=>$('toast').hidden=true,2800);}
@@ -183,7 +186,7 @@
     document.querySelectorAll('[data-move]').forEach(button=>button.disabled=Number(button.dataset.move)<0?position===0:displayPosition>=steps.length);
     $('step-progress').textContent=`${displayPosition} / ${steps.length} steps`;
     const current=position?trace[position-1].next_state:visualizer.model?.initial_state||'A';
-    $('diagram-step-status').textContent=`${position?'Step '+displayPosition+' of '+steps.length:'Start state'} · ${current}`;
+    $('diagram-step-status').textContent=`${position?'Step '+displayPosition+' of '+steps.length:'Start state'} · ${visualizer.stateName(current)}`;
     $('step-explanation').textContent=position?`${trace[position-1].transition}\n${trace[position-1].explanation}`:`The machine starts in ${current}. No input has been read yet.`;
     $('trace-body').querySelectorAll('tr[data-step]').forEach(row=>{
       const selected=Number(row.dataset.step)===position;row.classList.toggle('current-step',selected);
@@ -207,15 +210,17 @@
   $('fit-diagram').addEventListener('click',()=>$('zoom-label').textContent=visualizer.fit());
   for(const [id,amount] of [['zoom-out',-1],['zoom-in',1]])$(id).addEventListener('click',()=>$('zoom-label').textContent=visualizer.changeZoom(amount));
   $('show-rejections').addEventListener('change',()=>{visualizer.allRejections=$('show-rejections').checked;visualizer.render();});
-  for(const [id,mode] of [['view-input-path','input'],['view-full-dfa','full']])$(id).addEventListener('click',()=>{
+  function setDiagramMode(mode){
     window.DFAHelp.close();visualizer.setMode(mode);
     $('view-input-path').setAttribute('aria-pressed',String(mode==='input'));
     $('view-full-dfa').setAttribute('aria-pressed',String(mode==='full'));
     $('show-rejections').disabled=mode==='input';
-    $('diagram-view-help').textContent=mode==='input'?'Follow the arrows in order. Longer statements create longer paths using the same A–H states.':'The complete machine. Loops reuse states; visited arrows show the input read so far.';
+    $('diagram-view-help').textContent=mode==='input'?'Follow each input move. Loops repeat the same numbered state. Use Full DFA to see every deadlock transition.':'Start → State 2 → State 3 → State 4 → State 5 → State 6 → State 7 → Final. Invalid inputs lead to Deadlock.';
     $('zoom-label').textContent='Fit';
-  });
-  $('show-rejections').disabled=true;
+  }
+  for(const [id,mode] of [['view-input-path','input'],['view-full-dfa','full']])$(id).addEventListener('click',()=>setDiagramMode(mode));
+  setDiagramMode(visualizer.mode);
+  $('show-rejections').checked=visualizer.allRejections;
   $('path-part-prev').addEventListener('click',()=>visualizer.changePart(-1));
   $('path-part-next').addEventListener('click',()=>visualizer.changePart(1));
   function renderLab(){
@@ -249,6 +254,19 @@
     finally{state.labPending=false;controls();}
   });
   function renderHelp(model){
+    if(helpVisualizer)helpVisualizer.load(model);
+    const formal=$('dfa-formal-definition');
+    const definitions=[
+      ['Q',`{${model.states.map(item=>visualizer.stateName(item.id)).join(', ')}}`],
+      ['Σ',`{${model.alphabet.join(', ')}} — the tokenizer's finite input categories`],
+      ['δ','Q × Σ → Q. The complete transition table below gives exactly one next state per state/category pair.'],
+      ['q₀',visualizer.stateName(model.initial_state)],
+      ['F',`{${model.accepting_states.map(id=>visualizer.stateName(id)).join(', ')}} — acceptance requires the complete input, including its end marker`]
+    ];
+    if(formal){
+      formal.replaceChildren();
+      definitions.forEach(([symbol,definition])=>{const row=node('tr'),heading=node('th',symbol);heading.scope='row';row.append(heading,node('td',definition));formal.append(row);});
+    }
     const descriptions=$('state-descriptions');descriptions.replaceChildren();
     model.states.forEach(state=>{const row=node('div',undefined,'state-item');row.append(node('code',state.id),node('p',state.description));descriptions.append(row);});
     const table=$('transition-table'),head=table.querySelector('thead'),body=table.querySelector('tbody');head.replaceChildren();body.replaceChildren();

@@ -3,6 +3,8 @@ from core.dfa_engine import (STATES, ALPHABET, TRANSITIONS, INITIAL_STATE,
                              ACCEPTING_STATES, DEAD_STATE, STATE_DESCRIPTIONS, grouped_transitions)
 from core.tokenizer import Category as C
 
+SYNTAX_REGEX = r"[ \t]*int[ \t]+[A-Za-z_][A-Za-z_0-9]*[ \t]*=[ \t]*[0-9]+(?:[ \t]*[+*/-][ \t]*[0-9]+)+[ \t]*;[ \t]*"
+
 
 def dfa_definition():
     return {
